@@ -92,6 +92,9 @@ describe('API Tests', () => {
       expect(res.body.sources).toBeDefined();
       expect(res.body.sources.length).toBeGreaterThan(0);
       expect(res.body.sources[0]._id).toBe(docId);
+      expect(typeof res.body.sources[0].score).toBe('number');
+      expect(res.body.sources[0].score).toBeGreaterThan(0);
+      expect(res.body.sources[0].snippet).toContain('AI');
     });
 
     it('should handle question with no matching docs gracefully', async () => {

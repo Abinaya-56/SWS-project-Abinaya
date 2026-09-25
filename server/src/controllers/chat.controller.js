@@ -1,17 +1,6 @@
 import { getDb } from '../db.js';
 import { generateAnswer } from '../services/ai.service.js';
-
-function calculateScore(question, text) {
-  const words = question.toLowerCase().split(/\W+/).filter(w => w.length > 2); // Exclude very short words
-  const textLower = text.toLowerCase();
-  let score = 0;
-  words.forEach(word => {
-    if (textLower.includes(word)) {
-      score++;
-    }
-  });
-  return score;
-}
+import { rankDocuments } from '../services/ranking.js';
 
 export async function askQuestion(req, res, next) {
   try {
@@ -25,19 +14,14 @@ export async function askQuestion(req, res, next) {
     const db = getDb();
     const documents = db.data.documents;
     
-    const rankedDocs = documents.map(doc => {
-      return {
-        ...doc,
-        score: calculateScore(question, doc.textContent)
-      };
-    }).filter(doc => doc.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3);
+    const rankedDocs = rankDocuments(question, documents).slice(0, 3);
     
     const answer = await generateAnswer(question, rankedDocs);
     const sources = rankedDocs.map(doc => ({
       _id: doc.id,
-      originalName: doc.originalName
+      originalName: doc.originalName,
+      score: Number(doc.score.toFixed(4)),
+      snippet: doc.snippet
     }));
 
     res.json({ answer, sources });

@@ -2,7 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 import { API_BASE_URL } from './config';
 import './App.css';
 
+function highlightSnippet(snippet, question) {
+  const terms = [...new Set((question || '').toLowerCase().match(/[a-z0-9]+/g) || [])];
+  if (terms.length === 0) return snippet;
+  const pattern = new RegExp(`(${terms.map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+  return snippet.split(pattern).map((part, index) => (
+    terms.some(term => part.toLowerCase() === term) ? <mark key={index}>{part}</mark> : part
+  ));
+}
+
 function App() {
+  const [darkMode, setDarkMode] = useState(false);
   const [documents, setDocuments] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -133,22 +143,29 @@ function App() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to get answer');
       
-      setMessages([...newMessages, { role: 'ai', text: data.answer, sources: data.sources }]);
+      setMessages([...newMessages, { role: 'ai', text: data.answer, sources: data.sources, question: currentQ }]);
     } catch (err) {
       showError(err.message);
-      setMessages([...newMessages, { role: 'ai', text: 'Error: ' + err.message }]);
+      setMessages([...newMessages, { role: 'ai', text: 'Error: ' + err.message, question: currentQ }]);
     } finally {
       setLoadingChat(false);
     }
   };
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${darkMode ? 'dark-mode' : 'light-mode'}`}>
       {error && <div className="toast-error">{error}</div>}
       
       <header className="header">
-        <h1>DocuMind AI</h1>
-        <p>Manage documents & ask questions instantly</p>
+        <div className="header-row">
+          <div>
+            <h1>DocuMind AI</h1>
+            <p>Manage documents & ask questions instantly</p>
+          </div>
+          <button className="theme-toggle" type="button" onClick={() => setDarkMode(prev => !prev)}>
+            {darkMode ? '☀ Light' : '☾ Dark'}
+          </button>
+        </div>
       </header>
       
       <main className="main-content">
@@ -211,13 +228,21 @@ function App() {
                   <div className="msg-sources">
                     <span>Sources:</span>
                     {msg.sources.map(s => (
-                      <span key={s._id} className="source-chip">{s.originalName}</span>
+                      <div key={s._id} className="source-result">
+                        <div className="source-result-header">
+                          <span className="source-chip">{s.originalName}</span>
+                          <span className="score-badge">{Math.round(s.score * 100)}% match</span>
+                        </div>
+                        {s.snippet && (
+                          <p className="source-snippet">{highlightSnippet(s.snippet, msg.question)}</p>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
               </div>
             ))}
-            {loadingChat && <div className="chat-message ai"><div className="msg-bubble typing">Thinking...</div></div>}
+            {loadingChat && <div className="chat-message ai"><div className="msg-bubble typing">Generating<span className="typing-dots"><i>.</i><i>.</i><i>.</i></span></div></div>}
           </div>
           
           <form className="chat-input-form" onSubmit={handleChat}>
