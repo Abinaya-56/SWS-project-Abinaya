@@ -31,7 +31,7 @@ const __filename = fileURLToPath(import.meta.url);
 if (process.argv[1] === __filename) {
   initDb().then(() => {
     app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+      console.info(`Server running on port ${PORT}`);
     });
   }).catch(err => {
     console.error('Failed to init DB', err);
