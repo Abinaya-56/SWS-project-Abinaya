@@ -6,7 +6,8 @@ import { uploadDocument, getDocuments, downloadDocument, deleteDocument } from '
 
 const router = express.Router();
 
-const uploadDir = path.resolve('uploads');
+const dataDir = process.env.DATA_DIR || process.cwd();
+const uploadDir = path.join(dataDir, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }

@@ -5,8 +5,8 @@ let db;
 
 export async function initDb() {
   const defaultData = { documents: [] };
-  // Store db.json in server root
-  const dbPath = path.resolve('db.json');
+  const dataDir = process.env.DATA_DIR || process.cwd();
+  const dbPath = path.join(dataDir, 'db.json');
   db = await JSONFilePreset(dbPath, defaultData);
   return db;
 }
